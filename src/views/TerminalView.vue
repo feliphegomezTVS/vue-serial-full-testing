@@ -228,6 +228,20 @@ export default {
             }
             return Number.parseInt(this.FG.baudRateSelector.value);
         },
+        markDisconnected(): void {
+            this.FG.term.writeln('<DISCONNECTED>');
+            this.FG.portSelector.disabled = false;
+            this.FG.connectButton.textContent = 'Connect';
+            this.FG.connectButton.disabled = false;
+            this.FG.baudRateSelector.disabled = false;
+            this.FG.customBaudRateInput.disabled = false;
+            this.FG.dataBitsSelector.disabled = false;
+            this.FG.paritySelector.disabled = false;
+            this.FG.stopBitsSelector.disabled = false;
+            this.FG.flowControlCheckbox.disabled = false;
+            this.FG.port = undefined;
+        },
+        
 
 
 
@@ -247,20 +261,6 @@ export default {
     }
 }
 /** 
-        function markDisconnected(): void {
-        term.writeln('<DISCONNECTED>');
-        portSelector.disabled = false;
-        connectButton.textContent = 'Connect';
-        connectButton.disabled = false;
-        baudRateSelector.disabled = false;
-        customBaudRateInput.disabled = false;
-        dataBitsSelector.disabled = false;
-        paritySelector.disabled = false;
-        stopBitsSelector.disabled = false;
-        flowControlCheckbox.disabled = false;
-        port = undefined;
-        }
-
         async function connectToPort(): Promise<void> {
         await getSelectedPort();
         if (!port) {
