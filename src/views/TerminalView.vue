@@ -236,7 +236,7 @@ export default {
         this.initPeer();
         // this.initSW();
         // this.initTerminal();
-            this.initTerminal();
+        this.initTerminal();
     },
     methods: {
         initPeer() {
@@ -358,6 +358,7 @@ export default {
             }
         },
         ready() {
+            // this.connection.conn.serialization = 'json'
             this.connection.conn.on('data', this.inputData);
             this.connection.conn.on('close', this.connClose);
         },
@@ -418,8 +419,16 @@ export default {
         autoSendPeer(msg) {
             console.log('autoSendPeer', typeof(msg), this.isAbv(msg));
             let isArrayBuffer = this.isAbv(msg) || false;
-            if(this.isAbv(isArrayBuffer)){
-                
+            if(this.isAbv(msg)){
+                if (!("TextDecoder" in window)) {
+                    alert("Sorry, this browser does not support TextDecoder...");
+                    return;
+                }
+
+                let dec = new TextDecoder(); // always utf-8
+                let stringDec = dec.decode(msg);
+                console.log(stringDec);
+                this.sendData(stringDec);
             } else {
                 this.sendData(msg);
             }
