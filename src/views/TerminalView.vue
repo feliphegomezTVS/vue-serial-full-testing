@@ -361,6 +361,7 @@ export default {
             // this.connection.conn.serialization = 'json'
             this.connection.conn.on('data', this.inputData);
             this.connection.conn.on('close', this.connClose);
+            this.sendData('<CONNECTED>')
         },
         addMessage(origin, msg, type) {
             console.log('addMessage');
