@@ -91,11 +91,54 @@ export default {
                 message: '',
                 messages: [],
             },
+            /* Filters */
+            CANCounterGUI: 0,
+            dinf: {
+                a: "7DF80201429999999999",
+                b: "pauseIPafterThisMessage",
+                c: "pauseIPinstant",
+                d: "pauseFlashBlockArrayafterThisMessage",
+                e: "0028991200000000",
+                f: "00189900000000000083",
+                g: "full Reset",
+                h: "70080211019999999999",
+                i: "70080214009999999999",
+                j: "7008023E009999999999",
+                k: "unpauseIP",
+                l: "skippauseIPinstant",
+                m: "recallLastFlashBlock",
+                n: "blockCANBUSMessage",
+                o: "00189900000000000083",
+            },
+            info: {
+            a: /^001([0-9A-F]){0,17}|^200([0-9A-F]){0,17}|^201([0-9A-F]){0,17}|^301([0-9A-F]){0,17}|^300([0-9A-F]){0,17}|^7([0-9A-F]){0,19}|^6([0-9A-F]){0,19}$/,
+            b: /^7([0-9A-F]){0,2}80([0-9])([0-9A-F]){0,14}$/,
+            c: /^7([0-9A-F]){0,3}0([0-9A-F]){0,1}04([0-9A-F]){0,12}|^7([0-9A-F]){0,2}82([0-9A-F]){0,15}|^7([0-9A-F]){0,3}023E([0-9A-F]){0,12}|^7DF([0-9A-F]){0,17}|^700([0-9A-F]){0,17}$/,
+            d: /^7([0-9A-F]){0,2}81([0-9A-F]){0,3}36([0-9A-F]){0,10}|^7([0-9A-F]){0,2}80([0-9A-F]){0,1}37([0-9A-F]){0,12}$/,
+            e: /^7([0-9A-F]){0,2}80276([0-9A-F]){0,12}|^7([0-9A-F]){0,2}80([0-9A-F]){0,1}74([0-9A-F]){0,12}$/,
+            f: /^001([0-9A-F]){0,17}|^7([0-9A-F]){0,3}3([0-9A-F]){0,13}|^([0-6]){0,1}([0-9A-F]){0,19}$/,
+            g: /^001([0-9A-F]){0,17}|^7([0-9A-F]){0,2}82([0-9A-F]){0,15}|^700([0-9A-F]){0,17}|^7([0-9A-F]){0,3}023E80([0-9A-F]){0,10}$/,
+            h: /^7([0-9A-F]){0,2}82([0-9A-F]){0,15}|^700([0-9A-F]){0,17},$/,
+            i: /^7([0-9A-F]){0,3}1([0-9A-F]){0,3}36([0-9A-F]){0,10}$/,
+            j: /^7([0-9A-F]){0,3}037F3672([0-9A-F]){0,8}$/,
+            k: /^7([0-9A-F]){0,2}80276([0-9A-F]){0,12}$/,
+            l: /^7([0-9A-F]){0,3}3([0-9A-F]){0,15}$/,
+            m: /^7([0-9A-F]){0,2}80276([0-9A-F]){0,12}|^7([0-9A-F]){0,3}037F3672([0-9A-F]){0,8}$/,
+            n: /^7([0-9A-F]){0,2}80([0-9A-F]){0,1}74([0-9A-F]){0,12}$/,
+            o: 0,
+            p: null,
+            q: 150,
+            r: /^7([0-9A-F]){0,3}0([0-9A-F]){0,1}5003([0-9A-F]){0,10}$/,
+            s: /^7([0-9A-F]){0,3}0([0-9A-F]){0,1}51([0-9A-F]){0,12}|^7([0-9A-F]){0,3}0([0-9A-F]){0,1}11([0-9A-F]){0,12}$/,
+            t: /^7E([0-9A-F]){0,1}8044142([0-9A-F]){0,10}$/,
+            y: /^7([0-9A-F]){0,2}83([0-9A-F]){0,15}|^7([0-9A-F]){0,3}037F3672([0-9A-F]){0,8}|^7([0-9A-F]){0,3}037F0111([0-9A-F]){0,8}|^7([0-9A-F]){0,3}037F([0-9A-F]){0,2}78([0-9A-F]){0,8}|^7([0-9A-F]){0,3}0([0-9A-F]){0,1}76([0-9A-F]){0,12}$/,
+            },
         };
     },
     computed: {
         peerConnected(): boolean {
             try {
+                return true; // debug
                 return (this.connection.conn && this.connection.status == 'connected' && this.connection.peerId.length>10) ? true : false;
             } catch(e) {
                 console.log(e)
@@ -371,9 +414,6 @@ export default {
             convertEolCheckboxHandler();
 
             const serial = this.FG.usePolyfill ? polyfill : navigator.serial;
-            await navigator.serial.getPorts().then((ports) => {
-                console.log(port)
-            });
             
             self.FG.ports = await serial.getPorts() || [];
             self.FG.ports.forEach((port) => this.addNewPort(port));
@@ -399,6 +439,66 @@ export default {
         connSerial(){
             if (this.FG.port) this.disconnectFromPort();
             else this.connectToPort();
+        },
+        Filters(CANBUSMessage) {
+            if (CANBUSMessage.indexOf('ERROR') === -1) {
+                this.CANCounterGUI++;
+                if (CANBUSMessage.slice(4, 5) !== "2") {
+                    this.CANMessageGUI = CANBUSMessage;
+                }
+                if (this.info.a.test(CANBUSMessage)) {
+                    this.pauseIP = false;
+                    this.CANActionGUI = this.dinf.k;
+                    if (this.info.k.test(CANBUSMessage)) {
+                    this.recallLastFlashBlock = false;
+                    this.pauseFlashBlockArray = true;
+                    this.arrayLastFlashBlock = [];
+                    }
+                    if (this.info.e.test(CANBUSMessage) && (this.pauseFlashBlockArray === true)) {
+                    this.pauseIPinstant = false;
+                    this.pauseIP = true;
+                    this.skippauseIPinstant = true;
+                    this.CANActionGUI = this.dinf.l
+                    }
+                    if (this.info.t.test(CANBUSMessage)) {
+                        this.changeVoltageGUI(CANBUSMessage);
+                        setTimeout(() => {
+                            if (this.voltageNoResponse === true) {
+                            this.batteryVoltageGUI = '0.0';
+                            this.checkVoltageTooLow(this.batteryVoltageGUI)
+                            }
+                        }, 500);
+                    }
+                    if (this.info.j.test(CANBUSMessage)) {
+                    this.recallLastFlashBlock = true;
+                    this.CANActionGUI = this.dinf.m
+                    this.pauseFlashBlockArray = false;
+                    }
+                    if ((this.recallLastFlashBlock === true) && this.info.l.test(CANBUSMessage)) {
+                    this.pauseFlashBlockArray = false;
+                    }
+                    if ((this.info.m.test(CANBUSMessage) === true)) {
+                    if (this.info.o !== 255) {
+                        this.info.o = this.info.o + 1;
+                    } else {
+                        this.info.o = 0
+                    }
+                    this.convertFlashBlockCounter()
+                    }
+                    if ((this.info.n.test(CANBUSMessage) === true)) {
+                    this.info.o = 1;
+                    this.convertFlashBlockCounter()
+                    }
+                    if ((this.info.y.test(CANBUSMessage))) {
+                    this.CANActionGUI = this.dinf.n;
+                    } else {
+                        // this.emitToSocket(CANBUSMessage);
+                        return CANBUSMessage;
+                    }
+                }
+            } else {
+                console.log("Error Filter-CANB", CANBUSMessage);
+            }
         },
         async connectToPort(): Promise<void> {
             let self = this;
@@ -471,19 +571,25 @@ export default {
                         const { value, done } = await self.FG.reader.read();
                         if (value) {
                             // console.log('value', value)
-                            await new Promise<void>((resolve) => {
-                                self.FG.term.write(value+":", resolve);
-                            });
+                            let value2 = self.Filters(value);
+                            console.log('value2', value2)
+                            if(value2){
+                                await new Promise<void>((resolve) => {
+                                    self.FG.term.write(value2+":", resolve);
+                                });
+                            }
                             // Send Auto
-                            this.sendData(value);
+                            // this.sendData(value);
                         }
 
                         if (done) {
-                        // |reader| has been canceled.
-                        break;
+                            // |reader| has been canceled.
+                            break;
                         }
                         // Do something with |value|...
                     }
+
+
                     /*
                     try {
                         self.FG.reader = self.FG.port.readable.getReader({mode: 'byob'});
@@ -530,7 +636,6 @@ export default {
                         self.FG.reader = undefined;
                     }
                 }
-                
             }
 
             if (self.FG.port) {
@@ -580,6 +685,10 @@ export default {
         },
         addNewPort(port: SerialPort | SerialPortPolyfill): PortOption {
             console.log('port', port)
+            
+            const { comName, usbProductId, usbVendorId } = port.getInfo();
+            console.log(comName, usbProductId, usbVendorId)
+
             const portOption = document.createElement('option') as PortOption;
             portOption.textContent = `Port ${this.FG.portCounter++}`;
             portOption.port = port;
@@ -591,7 +700,6 @@ export default {
             if (portOption) {
                 return portOption;
             }
-
             return this.addNewPort(port);
         },
         downloadTerminalContents(): void {
