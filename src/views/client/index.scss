@@ -1,4 +1,72 @@
-/**
-*/
 
-body {}
+#terminal {
+    height: 25vh;
+    background-color: black;
+}
+#messages {
+    height: 25vh;
+    background-color: rgb(100, 100, 100);
+    overflow-y: auto;
+}
+
+
+
+.display {
+    width: 100%;
+    min-height: 400px;
+    padding-bottom: 20px;
+}
+
+.control {
+    width: 100%;
+    padding-bottom: 20px;
+}
+
+.control-button {
+    width: 100%;
+    min-height: 50px;
+}
+
+.display-box {
+    border: 2px solid black;
+}
+
+.standby {
+    background-color: red;
+}
+
+.go {
+    background-color: green;
+}
+
+.fade {
+    background-color: yellow;
+}
+
+.off {
+    background-color: gray;
+}
+
+.hidden {
+    visibility: hidden;
+}
+
+.no-display {
+    display: none;
+}
+
+.msg-time {
+    color: blue;
+}
+
+.cueMsg {
+    color: orange;
+}
+
+.selfMsg {
+    color: green;
+}
+
+.peerMsg {
+    color: red;
+}

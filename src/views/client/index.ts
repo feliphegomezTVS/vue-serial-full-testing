@@ -1,21 +1,40 @@
-
 import { Peer } from "peerjs";
 import {Terminal} from 'xterm';
 import {FitAddon} from 'xterm-addon-fit';
 import {
 serial as polyfill, SerialPort as SerialPortPolyfill,
 } from 'web-serial-polyfill';
-// import * as SerialPort from navigator.serial;
 
 declare class PortOption extends HTMLOptionElement {
     port: SerialPort | SerialPortPolyfill;
 }
 
+export class LineBreakTransformer {
+    constructor() {
+      // A container for holding stream data until a new line.
+      this.container = '';
+    }
+  
+    transform(chunk, controller) {
+        // Handle incoming chunk
+        this.container += chunk;
+        // const lines = this.container.split('X');
+        // const lines = this.container.split('\r\n');
+        const lines = this.container.split(/[\s,\r,\n,x,X]/);
+        this.container = lines.pop();
+        lines.forEach(line => controller.enqueue(line));
+    }
+  
+    flush(controller) {
+      // Flush the stream.
+      controller.enqueue(this.container);
+    }
+} 
+
 const utils = {
     methods: {
         addZero(t) {
-            if (t < 10)
-                t = "0" + t;
+            if (t < 10) t = "0" + t;
             return t;
         },
         isAbv(value) {
@@ -26,59 +45,62 @@ const utils = {
 
 export default {
     mixins: [utils],
-    data: () => ({
-        /* Data SerialPort */
-        FG: {
-            portSelector: HTMLSelectElement || undefined,
-            connectButton: HTMLButtonElement || undefined,
-            baudRateSelector: HTMLSelectElement || undefined,
-            customBaudRateInput: HTMLInputElement || undefined,
-            dataBitsSelector: HTMLSelectElement || undefined,
-            paritySelector: HTMLSelectElement || undefined,
-            stopBitsSelector: HTMLSelectElement || undefined,
-            flowControlCheckbox: HTMLInputElement || undefined,
-            echoCheckbox: HTMLInputElement || undefined,
-            flushOnEnterCheckbox: HTMLInputElement || undefined,
-            autoconnectCheckbox: HTMLInputElement || undefined,
-            portCounter: 1,
-            // port: SerialPort || SerialPortPolyfill || undefined,
-            port: undefined,
-            ports: [],
-            reader: ReadableStreamDefaultReader || ReadableStreamBYOBReader || undefined,
-            urlParams: new URLSearchParams(window.location.search),
-            usePolyfill: new URLSearchParams(window.location.search).has('polyfill'),
-            bufferSize: 8 * 1024, // 8Kb
-            term: new Terminal({
-                scrollback: 10_000,
-            }),
-            fitAddon: new FitAddon(),
-            encoder: new TextEncoder(),
-            toFlush: '',
-            terminalElement: HTMLInputElement || undefined,
-        },
-        /* Data Peer */
-        connection: {
-            config: {
-                debug: 2
+    data() {
+        return {
+            /* Data SerialPort */
+            FG: {
+                portSelector: HTMLSelectElement || undefined,
+                connectButton: HTMLButtonElement || undefined,
+                baudRateSelector: HTMLSelectElement || undefined,
+                customBaudRateInput: HTMLInputElement || undefined,
+                dataBitsSelector: HTMLSelectElement || undefined,
+                paritySelector: HTMLSelectElement || undefined,
+                stopBitsSelector: HTMLSelectElement || undefined,
+                flowControlCheckbox: HTMLInputElement || undefined,
+                echoCheckbox: HTMLInputElement || undefined,
+                flushOnEnterCheckbox: HTMLInputElement || undefined,
+                autoconnectCheckbox: HTMLInputElement || undefined,
+                portCounter: 1,
+                // port: SerialPort || SerialPortPolyfill || undefined,
+                port: undefined,
+                ports: [],
+                reader: ReadableStreamDefaultReader || ReadableStreamBYOBReader || undefined,
+                urlParams: new URLSearchParams(window.location.search),
+                usePolyfill: new URLSearchParams(window.location.search).has('polyfill'),
+                bufferSize: 8 * 1024, // 8Kb
+                term: new Terminal({
+                    scrollback: 10_000,
+                }),
+                fitAddon: new FitAddon(),
+                encoder: new TextEncoder(),
+                toFlush: '',
+                terminalElement: HTMLInputElement || undefined,
             },
-            conn: null,
-            lastPeerId: String || null || undefined,
-            peer: Peer || undefined,
-            peerId: '' || null, // Revisar ya que probablemente no se use
-            recvId: '',
-            status: '',
-            statusCode: 9999,
-            message: '',
-            messages: [],
-        },
-    }),
+            /* Data Peer */
+            connection: {
+                config: {
+                    debug: 2
+                },
+                conn: null,
+                lastPeerId: String || null || undefined,
+                peer: Peer || undefined,
+                peerId: '' || null, // Revisar ya que probablemente no se use
+                recvId: '',
+                status: '',
+                statusCode: 9999,
+                message: '',
+                messages: [],
+            },
+        };
+    },
     computed: {
-        peerConnected() {
+        peerConnected(): boolean {
             try {
                 return (this.connection.conn && this.connection.status == 'connected' && this.connection.peerId.length>10) ? true : false;
             } catch(e) {
                 console.log(e)
             }
+            return false;
         },
         classStatus() {
             if(this.connection.status == 'connected') return 'success';
@@ -227,7 +249,7 @@ export default {
             this.sendData('<CONNECTED>')
         },
         addMessage(origin, msg, type) {
-            console.log('addMessage');
+            // console.log('addMessage');
             let now = new Date();
             let data = {
                 type: type || (origin == 'self' ? 'primary' : (origin == 'system' ? 'dark' : 'secondary')),
@@ -243,7 +265,7 @@ export default {
             };
             if (data.time.h > 12) data.time.h -= 12;
             else if (data.time.h === 0) data.time.h = 12;
-            console.log(data);
+            // console.log(data);
             this.connection.messages.unshift(data);
             // this.connection.messages.push(data);
             // message.innerHTML = "<br><span class=\"msg-time\">" + h + ":" + m + ":" + s + "</span>  -  " + msg + message.innerHTML;
@@ -279,23 +301,6 @@ export default {
             document.getElementById("fade").className = "display-box hidden";
             document.getElementById("off").className = "display-box hidden";
             return;
-        },
-        autoSendPeer(msg) {
-            console.log('autoSendPeer', typeof(msg), this.isAbv(msg));
-            let isArrayBuffer = this.isAbv(msg) || false;
-            if(this.isAbv(msg)){
-                if (!("TextDecoder" in window)) {
-                    alert("Sorry, this browser does not support TextDecoder...");
-                    return;
-                }
-
-                let dec = new TextDecoder(); // always utf-8
-                let stringDec = dec.decode(msg);
-                // console.log(stringDec);
-                this.sendData(stringDec);
-            } else {
-                this.sendData(msg);
-            }
         },
 
         /* Functions SerialPort */
@@ -366,6 +371,10 @@ export default {
             convertEolCheckboxHandler();
 
             const serial = this.FG.usePolyfill ? polyfill : navigator.serial;
+            await navigator.serial.getPorts().then((ports) => {
+                console.log(port)
+            });
+            
             self.FG.ports = await serial.getPorts() || [];
             self.FG.ports.forEach((port) => this.addNewPort(port));
 
@@ -403,7 +412,7 @@ export default {
                 parity: self.FG.paritySelector.value as ParityType,
                 stopBits: Number.parseInt(self.FG.stopBitsSelector.value),
                 flowControl: self.FG.flowControlCheckbox.checked ? <const> 'hardware' : <const> 'none',
-                bufferSize,
+                // bufferSize,
 
                 // Prior to Chrome 86 these names were used.
                 baudrate: self.getSelectedBaudRate(),
@@ -435,8 +444,47 @@ export default {
                 return;
             }
 
+            // self.FG.reader = self.FG.port.readable
+            // .pipeThrough(new TextDecoderStream())
+            // .pipeThrough(new TransformStream(new LineBreakTransformer()))
+            // .getReader();
+
             while (self.FG.port && self.FG.port.readable) {
                 try {
+                    try {
+                        console.log('Usando option 1')
+                        // self.FG.reader = self.FG.port.readable.getReader({mode: 'byob'});
+                        self.FG.reader = self.FG.port.readable
+                        .pipeThrough(new TextDecoderStream())
+                        .pipeThrough(new TransformStream(new LineBreakTransformer()))
+                        .getReader();
+                    }
+                    catch {
+                        console.log('Usando option 2')
+                        let decoder = new TextDecoderStream();
+                        const inputDone = self.FG.port.readable.pipeTo(decoder.writable);
+                        const inputStream = decoder.readable.pipeThrough(new TransformStream(new LineBreakTransformer()));
+                        self.FG.reader = inputStream.getReader();
+                    }
+
+                    for (;;) {
+                        const { value, done } = await self.FG.reader.read();
+                        if (value) {
+                            // console.log('value', value)
+                            await new Promise<void>((resolve) => {
+                                self.FG.term.write(value+":", resolve);
+                            });
+                            // Send Auto
+                            this.sendData(value);
+                        }
+
+                        if (done) {
+                        // |reader| has been canceled.
+                        break;
+                        }
+                        // Do something with |value|...
+                    }
+                    /*
                     try {
                         self.FG.reader = self.FG.port.readable.getReader({mode: 'byob'});
                     } 
@@ -470,6 +518,7 @@ export default {
                             break;
                         }
                     }
+                    */
                 } catch (e) {
                     console.error(e);
                     await new Promise<void>((resolve) => {
@@ -481,6 +530,7 @@ export default {
                         self.FG.reader = undefined;
                     }
                 }
+                
             }
 
             if (self.FG.port) {
@@ -492,6 +542,16 @@ export default {
                 }
                 this.markDisconnected();
             }
+        },
+        async readWithTimeout(port, timeout) {
+            const reader = port.readable.getReader();
+            const timer = setTimeout(() => {
+                reader.releaseLock();
+            }, timeout);
+            const result = await reader.read();
+            clearTimeout(timer);
+            reader.releaseLock();
+            return result;
         },
         async getSelectedPort(): Promise<void> {
             let self = this;
@@ -519,6 +579,7 @@ export default {
             return null;
         },
         addNewPort(port: SerialPort | SerialPortPolyfill): PortOption {
+            console.log('port', port)
             const portOption = document.createElement('option') as PortOption;
             portOption.textContent = `Port ${this.FG.portCounter++}`;
             portOption.port = port;

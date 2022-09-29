@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
 import HomeView from "../views/HomeView.vue";
-import TerminalView from "../views/TerminalView.vue";
 import SupplierView from "../views/supplier/index.vue";
 
 const router = createRouter({
@@ -14,7 +13,7 @@ const router = createRouter({
     {
       path: "/terminal",
       name: "terminal",
-      component: TerminalView,
+      component: () => import("../views/terminal/index.vue"),
     },
     {
       path: "/client",
