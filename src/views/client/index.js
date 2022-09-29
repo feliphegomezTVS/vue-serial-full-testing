@@ -1,146 +1,11 @@
-<template>
-  <main>
-    <div class="container-fluid bg-danger p-1"> <!--// v-if="peerConnected == false" -->
-        <div class="row bg-info p-1">
-            <div class="col-md-1 bg-dark">
-                <span :class="'badge rounded-pill text-bg-'+classStatus">{{connection.status}}</span>
-            </div>
-            <div class="col-md-2 bg-warning">
-                1 Step: Conectarse al Peer 
-            </div>
-            <div class="col-md-3 bg-secondary">
-                <abbr title="ID remote connection">ID:</abbr>&nbsp;{{connection.recvId}}
-            </div>
-            <div class="col-md-4 bg-info">
-                <input :disabled="peerConnected == false" v-on:keypress="keypressSendMessage" class="col-md-12" type="text" v-model="connection.message" placeholder="Enter a message..." autofocus="true" />
-            </div>
-            <div class="col-md-2 bg-info d-grid gap-2 d-md-flex mx-auto">
-                <button type="button" class="btn btn-sm btn-success" @click="sendMessageInput">Send</button>
-                <button type="button" class="btn btn-sm btn-danger" @click="clearMessages">Clear Msgs (Local)</button>
 
-            </div>
-            <div class="col-md-12 bg-danger">
-                peerId: {{connection.peerId}}
-            </div>
-            <div class="col-md-12 bg-info">
-                <div id="messages">
-                    <div v-for="(msg, a) in connection.messages" :class="'alert alert-'+msg.type" role="alert" v-bind:key="'msg-'+a">
-                        <a class="alert-link">{{msg.origin}}</a>&nbsp;
-                        <mark>{{msg.time.h}}:{{msg.time.m}}:{{msg.time.s}}</mark>&nbsp;
-                        {{msg.message}}
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-12 bg-dark">
-                <table class="table table bordered">
-                    <tr>
-                        <td class="display-box standby" id="standby"><h2>Standby</h2></td>
-                        <td class="display-box hidden" id="go"><h2>Go</h2></td>
-                    </tr>
-                    <tr>
-                        <td class="display-box hidden" id="fade"><h2>Fade</h2></td>
-                        <td class="display-box hidden" id="off"><h2>All Off</h2></td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-        <br />
-    </div>
-    
-    <div class="container-fluid bg-dark">
-        <div class="row bg-primary p-1">
-            <div class="col-md-12 bg-info row">
-                <div class="col-md-3 bg-success">
-                    <label class="form-label" for="ports">Port:</label>
-                    <select id="ports" class="form-select">
-                        <option value="prompt">Add a port...</option>
-                    </select>
-                </div>
-                <div class="col-md-3 bg-danger">
-                    <label class="form-label" for="baudrate">Baud rate:</label>
-                    <select id="baudrate" class="form-select">
-                        <option value="9600">9600</option>
-                        <option value="14400">14400</option>
-                        <option value="19200">19220</option>
-                        <option value="28800">28800</option>
-                        <option value="38400">38400</option>
-                        <option value="57600">57600</option>
-                        <option value="115200" selected>115200</option>
-                        <option value="230400">230400</option>
-                        <option value="460800">460800</option>
-                        <option value="921600">921600</option>
-                        <option value="custom">Custom</option>
-                    </select>
-                    <input id="custom_baudrate" class="form-control" type="number" min="1" placeholder="Enter baudrate..." hidden />
-                </div>
-                <div class="col-md-2 bg-secondary">
-                    <label class="form-label" for="databits">Data bits:</label>
-                    <select id="databits" class="form-select">
-                        <option value="7">7</option>
-                        <option value="8" selected>8</option>
-                    </select>
-                </div>
-                <div class="col-md-2 bg-warning">
-                    <label class="form-label" for="parity">Parity:</label>
-                    <select id="parity" class="form-select">
-                        <option value="none" selected>None</option>
-                        <option value="even">Even</option>
-                        <option value="odd">Odd</option>
-                    </select>
-                </div>
-                <div class="col-md-2 bg-secondary">
-                    <label class="form-label" for="stopbits">Stop bits:</label>
-                    <select id="stopbits" class="form-select">
-                        <option value="1" selected>1</option>
-                        <option value="2">2</option>
-                    </select>
-                </div>
-                <div class="col-md-12 bg-warning align-self-end text-end">
-                    <button id="connect" class="btn btn-lg btn-primary" :disabled="peerConnected == false">Connect</button>
-                </div>
-            </div>
-            <div class="col-md-12 bg-info row">
-                <div class="col-md-2 bg-success">
-                    <input id="rtscts" type="checkbox" class="form-check-input">
-                    <label class="form-check-label" for="rtscts">Hardware flow control</label>
-                </div>
-                <div class="col-md-2 bg-danger">
-                    <input id="echo" type="checkbox" class="form-check-input">
-                    <label for="echo">Local echo</label>
-                </div>
-                <div class="col-md-2 bg-warning">
-                    <input id="enter_flush" type="checkbox" class="form-check-input">
-                    <label class="form-check-label" for="enter_flush">Flush on enter</label>
-                </div>
-                <div class="col-md-2 bg-success">
-                    <input id="convert_eol" type="checkbox" class="form-check-input">
-                    <label class="form-check-label" for="convert_eol">Convert EOL</label>
-                </div>
-                <div class="col-md-2 bg-danger">
-                    <input id="autoconnect" type="checkbox" class="form-check-input">
-                    <label class="form-check-label" for="autoconnect">Automatically connect</label>
-                </div>
-                <div class="col-md-2 bg-warning">
-                    <button id="download" class="btn btn-secondary">Download output</button>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-12 bg-info">
-                <div id="terminal"></div>
-            </div>
-        </div>
-    </div>
-  </main>
-</template>
-
-<script lang="ts">
 import { Peer } from "peerjs";
 import {Terminal} from 'xterm';
 import {FitAddon} from 'xterm-addon-fit';
 import {
 serial as polyfill, SerialPort as SerialPortPolyfill,
 } from 'web-serial-polyfill';
+// import * as SerialPort from navigator.serial;
 
 declare class PortOption extends HTMLOptionElement {
     port: SerialPort | SerialPortPolyfill;
@@ -161,54 +26,52 @@ const utils = {
 
 export default {
     mixins: [utils],
-    data() {
-        return {
-            /* Data SerialPort */
-            FG: {
-                portSelector: HTMLSelectElement || undefined,
-                connectButton: HTMLButtonElement || undefined,
-                baudRateSelector: HTMLSelectElement || undefined,
-                customBaudRateInput: HTMLInputElement || undefined,
-                dataBitsSelector: HTMLSelectElement || undefined,
-                paritySelector: HTMLSelectElement || undefined,
-                stopBitsSelector: HTMLSelectElement || undefined,
-                flowControlCheckbox: HTMLInputElement || undefined,
-                echoCheckbox: HTMLInputElement || undefined,
-                flushOnEnterCheckbox: HTMLInputElement || undefined,
-                autoconnectCheckbox: HTMLInputElement || undefined,
-                portCounter: 1,
-                // port: SerialPort || SerialPortPolyfill || undefined,
-                port: undefined,
-                ports: [],
-                reader: ReadableStreamDefaultReader || ReadableStreamBYOBReader || undefined,
-                urlParams: new URLSearchParams(window.location.search),
-                usePolyfill: new URLSearchParams(window.location.search).has('polyfill'),
-                bufferSize: 8 * 1024, // 8Kb
-                term: new Terminal({
-                    scrollback: 10_000,
-                }),
-                fitAddon: new FitAddon(),
-                encoder: new TextEncoder(),
-                toFlush: '',
-                terminalElement: HTMLInputElement || undefined,
+    data: () => ({
+        /* Data SerialPort */
+        FG: {
+            portSelector: HTMLSelectElement || undefined,
+            connectButton: HTMLButtonElement || undefined,
+            baudRateSelector: HTMLSelectElement || undefined,
+            customBaudRateInput: HTMLInputElement || undefined,
+            dataBitsSelector: HTMLSelectElement || undefined,
+            paritySelector: HTMLSelectElement || undefined,
+            stopBitsSelector: HTMLSelectElement || undefined,
+            flowControlCheckbox: HTMLInputElement || undefined,
+            echoCheckbox: HTMLInputElement || undefined,
+            flushOnEnterCheckbox: HTMLInputElement || undefined,
+            autoconnectCheckbox: HTMLInputElement || undefined,
+            portCounter: 1,
+            // port: SerialPort || SerialPortPolyfill || undefined,
+            port: undefined,
+            ports: [],
+            reader: ReadableStreamDefaultReader || ReadableStreamBYOBReader || undefined,
+            urlParams: new URLSearchParams(window.location.search),
+            usePolyfill: new URLSearchParams(window.location.search).has('polyfill'),
+            bufferSize: 8 * 1024, // 8Kb
+            term: new Terminal({
+                scrollback: 10_000,
+            }),
+            fitAddon: new FitAddon(),
+            encoder: new TextEncoder(),
+            toFlush: '',
+            terminalElement: HTMLInputElement || undefined,
+        },
+        /* Data Peer */
+        connection: {
+            config: {
+                debug: 2
             },
-            /* Data Peer */
-            connection: {
-                config: {
-                    debug: 2
-                },
-                conn: null,
-                lastPeerId: String || null || undefined,
-                peer: Peer || undefined,
-                peerId: '' || null, // Revisar ya que probablemente no se use
-                recvId: '',
-                status: '',
-                statusCode: 9999,
-                message: '',
-                messages: [],
-            },
-        };
-    },
+            conn: null,
+            lastPeerId: String || null || undefined,
+            peer: Peer || undefined,
+            peerId: '' || null, // Revisar ya que probablemente no se use
+            recvId: '',
+            status: '',
+            statusCode: 9999,
+            message: '',
+            messages: [],
+        },
+    }),
     computed: {
         peerConnected() {
             try {
@@ -428,7 +291,7 @@ export default {
 
                 let dec = new TextDecoder(); // always utf-8
                 let stringDec = dec.decode(msg);
-                console.log(stringDec);
+                // console.log(stringDec);
                 this.sendData(stringDec);
             } else {
                 this.sendData(msg);
@@ -745,78 +608,3 @@ export default {
         }
     }
 }
-</script>
-
-<style scoped>
-#terminal {
-    height: 25vh;
-    background-color: black;
-}
-#messages {
-    height: 25vh;
-    background-color: rgb(100, 100, 100);
-    overflow-y: auto;
-}
-
-
-
-.display {
-    width: 100%;
-    min-height: 400px;
-    padding-bottom: 20px;
-}
-
-.control {
-    width: 100%;
-    padding-bottom: 20px;
-}
-
-.control-button {
-    width: 100%;
-    min-height: 50px;
-}
-
-.display-box {
-    border: 2px solid black;
-}
-
-.standby {
-    background-color: red;
-}
-
-.go {
-    background-color: green;
-}
-
-.fade {
-    background-color: yellow;
-}
-
-.off {
-    background-color: gray;
-}
-
-.hidden {
-    visibility: hidden;
-}
-
-.no-display {
-    display: none;
-}
-
-.msg-time {
-    color: blue;
-}
-
-.cueMsg {
-    color: orange;
-}
-
-.selfMsg {
-    color: green;
-}
-
-.peerMsg {
-    color: red;
-}
-</style>
